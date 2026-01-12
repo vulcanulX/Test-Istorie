@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<title>Teste de Istorie Interactiv</title>
+<style>
+  body { font-family: 'Comic Sans MS', Arial, sans-serif; background: linear-gradient(to right, #f9f9f9, #d9e7f7); margin: 0; padding: 0; }
+  header { background: #8b0000; color: white; padding: 25px 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+  main { max-width: 800px; margin: 30px auto; padding: 20px; }
+  select, button { padding: 12px; margin: 10px 0; width: 100%; font-size: 16px; border-radius: 8px; border: none; outline: none; }
+  button { background-color: #8b0000; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+  button:hover { background-color: #b22222; }
+  .question-card { background: white; padding: 20px; margin: 20px 0; border-radius: 15px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); transition: 0.3s; opacity:0; animation: fadeBounce 0.5s forwards; }
+  .question { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+  .answers label { display: block; margin: 8px 0; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; background-color: #f1f1f1; }
+  .answers label:hover { background-color: #e0e0e0; }
+
+  /* Animatii generale */
+  @keyframes fade { 0% { opacity:0;} 100% { opacity:1;} }
+  @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+  @keyframes fadeBounce { 0% {opacity:0; transform: translateY(-20px);} 50% {opacity:1; transform: translateY(10px);} 100% {opacity:1; transform: translateY(0);} }
+
+  .correct { background: #d4edda; color: #155724; padding: 10px; border-radius: 10px; font-weight: bold; animation: fade 0.5s; }
+  .wrong { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 10px; font-weight: bold; animation: shake 0.5s, fade 0.5s; }
+
+  /* Culori carduri pe dificultate */
+  .usor { background-color: #d4f7d4; }
+  .mediu { background-color: #fff8b0; }
+  .greu { background-color: #f7d4d4; }
+
+  #timer { font-size: 18px; font-weight: bold; margin-top: 10px; color: #fff; background-color: #8b0000; padding: 8px 15px; border-radius: 50px; display: inline-block; }
+  #result { font-weight: bold; margin-top: 20px; font-size: 20px; text-align: center; color: #8b0000; }
+  #progress { font-weight: bold; margin-top: 10px; font-size: 18px; }
+  #restart { margin-top: 15px; background-color:#006400; }
+  #restart:hover { background-color:#228B22; }
+
+  @media (max-width: 600px) {
+    .question { font-size: 18px; }
+    select, button { font-size: 14px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Teste de Istorie Interactiv</h1>
+  <p>Alege clasa și dificultatea</p>
+</header>
+<main>
+  <label>Clasa:</label>
+  <select id="clasa">
+    <option value="5">Clasa a V-a</option>
+    <option value="6">Clasa a VI-a</option>
+    <option value="7">Clasa a VII-a</option>
+    <option value="8">Clasa a VIII-a</option>
+  </select>
+
+  <label>Dificultate:</label>
+  <select id="dificultate">
+    <option value="usor">Ușor</option>
+    <option value="mediu">Mediu</option>
+    <option value="greu">Greu</option>
+  </select>
+
+  <button onclick="startTest()">Începe testul</button>
+  <button id="restart" onclick="restartTest()">Reîncepe testul</button>
+
+  <div id="timer"></div>
+  <div id="progress"></div>
+  <div id="test"></div>
+  <div id="result"></div>
+</main>
+
+<!-- Sunete -->
+<audio id="sound-correct">
+  <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
+</audio>
+<audio id="sound-wrong">
+  <source src="https://www.soundjay.com/buttons/sounds/button-10.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const timpPeDificultate = { "usor":30, "mediu":45, "greu":60 };
+
+const teste = {
+  // ===================== CLASA A V-A =====================
+  "5_usor": [
+    {intrebare:"Cine a fost primul domnitor al Țării Românești?", variante:["Mircea cel Bătrân","Basarab I","Ștefan cel Mare"], corect:1},
+    {intrebare:"În ce an a avut loc Marea Unire?", variante:["1916","1918","1920"], corect:1},
+    {intrebare:"Cine a condus Moldova în timpul luptei cu turcii?", variante:["Ștefan cel Mare","Mihai Viteazul","Vlad Țepeș"], corect:0},
+    {intrebare:"Care este perioada domniei lui Carol I?", variante:["1866–1914","1859–1881","1918–1927"], corect:0},
+    {intrebare:"Care a fost rolul lui Mihai Viteazul?", variante:["Domnitor unificator","Scriitor","Explorator"], corect:0},
+    {intrebare:"Cine a fost Alexandru Ioan Cuza?", variante:["Domnitor al Principatelor Unite","Rege al României","General"], corect:0},
+    {intrebare:"Ce s-a întâmplat în 1600?", variante:["Unirea Principatelor sub Mihai Viteazul","Marea Unire","Războiul de Independență"], corect:0},
+    {intrebare:"Cine a scris Cronica lui Țara Românească?", variante:["Miron Costin","Ion Creangă","Nicolae Bălcescu"], corect:0},
+    {intrebare:"Ce teritoriu a fost parte a Daciei?", variante:["Transilvania","Oltenia","Banat"], corect:0},
+    {intrebare:"Care domnitor a ctitorit Mănăstirea Putna?", variante:["Ștefan cel Mare","Mihai Viteazul","Vlad Țepeș"], corect:0}
+  ],
+  "5_mediu": [
+    {intrebare:"În ce an a fost domnia lui Vlad Țepeș?", variante:["1456–1462","1400–1450","1500–1510"], corect:0},
+    {intrebare:"Ce a semnat Alexandru Ioan Cuza în 1864?", variante:["Reforma agrară","Marea Unire","Tratatul de la Trianon"], corect:0},
+    {intrebare:"Care a fost scopul luptei lui Mihai Viteazul?", variante:["Unirea celor trei țări românești","Expansiune teritorială","Comerț"], corect:0},
+    {intrebare:"Ce a proclamat Carol I în 1881?", variante:["Regatul României","Republica Română","Tratatul de la Paris"], corect:0},
+    {intrebare:"Cine a scris 'Letopisețul Țării Moldovei'?", variante:["Grigore Ureche","Ion Creangă","Nicolae Iorga"], corect:0},
+    {intrebare:"Ce eveniment a marcat 1859 în România?", variante:["Unirea Moldovei cu Țara Românească","Marea Unire","Independența României"], corect:0},
+    {intrebare:"Cine a fost primul rege al României?", variante:["Carol I","Ferdinand I","Mihai I"], corect:0},
+    {intrebare:"Ce luptă a avut loc în 1475?", variante:["Războiul cu turcii la Vaslui","Bătălia de la Mărășești","Bătălia de la Posada"], corect:0},
+    {intrebare:"Care domnitor a fondat Academia Mihăileană?", variante:["Alexandru Ioan Cuza","Carol I","Ștefan cel Mare"], corect:0},
+    {intrebare:"Ce tratat a recunoscut independența României?", variante:["Tratatul de la Berlin","Tratatul de la Paris","Tratatul de la Trianon"], corect:0}
+  ],
+  "5_greu": [
+    {intrebare:"Care a fost politica externă a lui Ștefan cel Mare?", variante:["Alianțe cu Polonia și Moldova","Expansiune spre sud","Neutralitate absolută"], corect:0},
+    {intrebare:"Ce însemna 'bujorești' în documentele medievale?", variante:["Țărani liberi","Soldați","Negustori"], corect:0},
+    {intrebare:"Cum a influențat Războiul Crimeii Țările Române?", variante:["A favorizat reforma administrativă","A dus la anexarea Transilvaniei","A dus la depopularea Moldovei"], corect:0},
+    {intrebare:"Cine a condus Moldova după moartea lui Ștefan cel Mare?", variante:["Bogdan al III-lea","Petru Rareș","Alexandru Lăpușneanu"], corect:0},
+    {intrebare:"Care erau obligațiile țăranilor în Evul Mediu?", variante:["Datorii către boieri","Servicii militare în orașe","Nicio obligație"], corect:0},
+    {intrebare:"Cine a scris 'Istoria românilor' în secolul XIX?", variante:["Nicolae Iorga","Ion Creangă","Mihail Kogălniceanu"], corect:0},
+    {intrebare:"Ce însemna titlul 'domn pământesc'?", variante:["Conducător al unui principat românesc","Rege al Europei","Primar al unui oraș"], corect:0},
+    {intrebare:"Care a fost motivul luptei de la Posada?", variante:["Independența față de Ungaria","Controlul Dunării","Conflicte comerciale"], corect:0},
+    {intrebare:"Ce reforme a introdus Cuza în justiție?", variante:["Codul civil și penal modern","Cod medieval","Nu a introdus reforme"], corect:0},
+    {intrebare:"Ce a fost Răscoala de la 1907?", variante:["Răscoală țărănească împotriva marilor proprietari","Revoluție industrială","Bătălie cu turcii"], corect:0}
+  ],
+
+  // ===================== CLASA A VI-A =====================
+  "6_usor": [
+    {intrebare:"Cine a descoperit America?", variante:["Cristofor Columb","Vasco da Gama","Magellan"], corect:0},
+    {intrebare:"În ce an a căzut Constantinopolul?", variante:["1453","1492","1500"], corect:0},
+    {intrebare:"Cine a fost Vlad Țepeș?", variante:["Domnitor al Țării Românești","Explorator","Scriitor"], corect:0},
+    {intrebare:"Ce este Reforma Protestantă?", variante:["Mișcare religioasă în Europa","Bătălie medievală","Un tratat"], corect:0},
+    {intrebare:"Cine a unit Moldova și Țara Românească?", variante:["Alexandru Ioan Cuza","Carol I","Mihai Viteazul"], corect:0},
+    {intrebare:"În ce an s-a înființat Academia Mihăileană?", variante:["1835","1859","1864"], corect:0},
+    {intrebare:"Cine a fost Mihai Viteazul?", variante:["Domnitor unificator","Rege al României","Scriitor"], corect:0},
+    {intrebare:"Care a fost scopul domniei lui Ștefan cel Mare?", variante:["Apărarea Moldovei","Expansiune spre Europa","Explorări maritime"], corect:0},
+    {intrebare:"Ce tratat a recunoscut independența României?", variante:["Tratatul de la Berlin","Tratatul de la Paris","Tratatul de la Trianon"], corect:0},
+    {intrebare:"Cine a scris 'Istoria românilor'?", variante:["Nicolae Iorga","Miron Costin","Ion Creangă"], corect:0}
+  ],
+  "6_mediu": [
+    {intrebare:"Ce eveniment a dus la Marea Schismă?", variante:["Conflict religios între Bisericile creștine","Război între state","Descoperirea Americii"], corect:0},
+    {intrebare:"În ce perioadă a domnit Carol I?", variante:["1866–1914","1859–1881","1900–1920"], corect:0},
+    {intrebare:"Cine a fost Petru Rareș?", variante:["Domnitor al Moldovei","Explorator","Scriitor"], corect:0},
+    {intrebare:"Ce a introdus Alexandru Ioan Cuza în România?", variante:["Reforma agrară și unificarea administrației","Codul lui Hammurabi","Moneda unică"], corect:0},
+    {intrebare:"Ce domnitor a ctitorit Mănăstirea Voroneț?", variante:["Ștefan cel Mare","Mihai Viteazul","Vlad Țepeș"], corect:0},
+    {intrebare:"Care a fost scopul luptei lui Mihai Viteazul?", variante:["Unirea celor trei principate românești","Expansiune în Europa","Războaie maritime"], corect:0},
+    {intrebare:"Ce tratat a recunoscut independența României în 1878?", variante:["Tratatul de la Berlin","Tratatul de la Paris","Tratatul de la Trianon"], corect:0},
+    {intrebare:"Cine a condus Moldova după Ștefan cel Mare?", variante:["Bogdan al III-lea","Alexandru Lăpușneanu","Petru Rareș"], corect:0},
+    {intrebare:"Ce a fost Răscoala de la 1907?", variante:["Răscoală țărănească","Revoluție industrială","Război cu turcii"], corect:0},
+    {intrebare:"Ce este Codul civil introdus de Cuza?", variante:["Lege modernă pentru toți cetățenii","Lege medievală","Lege religioasă"], corect:0}
+  ],
+  "6_greu": [
+    {intrebare:"Care erau obligațiile țăranilor în Evul Mediu?", variante:["Datorii către boieri","Servicii militare în orașe","Nicio obligație"], corect:0},
+    {intrebare:"Ce însemna titlul 'domn pământesc'?", variante:["Conducător al unui principat românesc","Rege al Europei","Primar al unui oraș"], corect:0},
+    {intrebare:"Cum a influențat Războiul Crimeii Țările Române?", variante:["A favorizat reforma administrativă","A dus la anexarea Transilvaniei","A dus la depopularea Moldovei"], corect:0},
+    {intrebare:"Cine a scris 'Letopisețul Țării Moldovei'?", variante:["Grigore Ureche","Ion Creangă","Nicolae Iorga"], corect:0},
+    {intrebare:"Ce reforme a introdus Cuza în justiție?", variante:["Codul civil și penal modern","Cod medieval","Nu a introdus reforme"], corect:0},
+    {intrebare:"Care domnitor a introdus strajă domnească și armata modernă?", variante:["Alexandru Ioan Cuza","Ștefan cel Mare","Carol I"], corect:0},
+    {intrebare:"Ce a fost Regulamentul Organic?", variante:["Prima constituție modernă în Țările Române","Cod medieval","Tratat internațional"], corect:0},
+    {intrebare:"Ce a proclamat Carol I în 1881?", variante:["Regatul României","Republica Română","Tratatul de la Paris"], corect:0},
+    {intrebare:"Care a fost politica externă a lui Ștefan cel Mare?", variante:["Alianțe cu Polonia și Moldova","Expansiune spre sud","Neutralitate absolută"], corect:0},
+    {intrebare:"Care a fost scopul Mănăstirilor ctitorite de Ștefan cel Mare?", variante:["Religios și cultural","Militar","Economic"], corect:0}
+  ],
+
+  // ===================== CLASA A VII-A =====================
+  "7_usor": [
+    {intrebare:"Cine a fost Mihai Viteazul?", variante:["Domnitor unificator","Explorator","Scriitor"], corect:0},
+    {intrebare:"În ce an a avut loc Războiul de Independență al României?", variante:["1877","1918","1866"], corect:0},
+    {intrebare:"Cine a fost Alexandru Ioan Cuza?", variante:["Domnitor al Principatelor Unite","Rege al României","General"], corect:0},
+    {intrebare:"Ce tratat a recunoscut independența României?", variante:["Tratatul de la Berlin","Tratatul de la Paris","Tratatul de la Trianon"], corect:0},
+    {intrebare:"Ce a fost Regulamentul Organic?", variante:["Prima constituție modernă în Țările Române","Cod medieval","Tratat internațional"], corect:0},
+    {intrebare:"Cine a domnit în Moldova după Ștefan cel Mare?", variante:["Petru Rareș","Bogdan al III-lea","Alexandru Lăpușneanu"], corect:0},
+    {intrebare:"Ce rol au avut mănăstirile în Evul Mediu?", variante:["Religios și cultural","Militar","Economic"], corect:0},
+    {intrebare:"Ce reforme a introdus Cuza în justiție?", variante:["Cod civil și penal modern","Cod medieval","Nu a introdus reforme"], corect:0},
+    {intrebare:"Cine a proclamat Regatul României în 1881?", variante:["Carol I","Alexandru Ioan Cuza","Mihai Viteazul"], corect:0},
+    {intrebare:"Ce a fost Răscoala de la 1907?", variante:["Răscoală țărănească","Revoluție industrială","Război cu turcii"], corect:0}
+  ],
+  "7_mediu": [
+    {intrebare:"Cine a fost Regele Ferdinand I?", variante:["Rege al României Mari","Domnitor al Moldovei","General în război"], corect:0},
+    {intrebare:"Ce eveniment a dus la Marea Unire de la 1918?", variante:["Sfârșitul Primului Război Mondial","Războiul de Independență","Revoluția de la 1848"], corect:0},
+    {intrebare:"Ce teritoriu a fost unit cu România în 1918?", variante:["Transilvania","Banatul","Oltenia"], corect:0},
+    {intrebare:"Cine a condus România în Primul Război Mondial?", variante:["Regina Maria","Carol I","Ferdinand I"], corect:2},
+    {intrebare:"Ce a fost Actul de la 24 ianuarie 1859?", variante:["Unirea Principatelor Române","Independența României","Marea Unire"], corect:0},
+    {intrebare:"Ce alianță militară a intrat România în 1916?", variante:["Antanta","Tripla Alianță","Liga Națiunilor"], corect:0},
+    {intrebare:"Ce a introdus reforma agrară din 1921?", variante:["Împroprietărirea țăranilor","Cod civil modern","Sistem feudal"], corect:0},
+    {intrebare:"Cine a fost Nicolae Iorga?", variante:["Istoric și politician","Domnitor","General"], corect:0},
+    {intrebare:"Ce a fost Bătălia de la Mărășești?", variante:["Luptă din Primul Război Mondial","Bătălie medievală","Război civil"], corect:0},
+    {intrebare:"Cine a fost generalul Averescu?", variante:["Militar român în Primul Război Mondial","Rege","Explorator"], corect:0}
+  ],
+  "7_greu": [
+    {intrebare:"Care au fost cauzele Primului Război Mondial?", variante:["Imperialism și alianțe militare","Crize economice locale","Descoperiri geografice"], corect:0},
+    {intrebare:"Ce a fost Tratatul de la Trianon?", variante:["Tratat care a stabilit granițele României Mari","Cod civil","Constituție medievală"], corect:0},
+    {intrebare:"Cine a condus România în perioada interbelică?", variante:["Regii Ferdinand și Carol II","Mihai Viteazul","Ștefan cel Mare"], corect:0},
+    {intrebare:"Ce teritorii a primit România după 1918?", variante:["Transilvania, Banat, Bucovina, Basarabia","Oltenia și Muntenia","Dobrogea și Moldova"], corect:0},
+    {intrebare:"Ce rol a avut România în Primul Război Mondial?", variante:["Alăturarea de Antanta și participarea militară","Neutralitate completă","Război cu Turcia"], corect:0},
+    {intrebare:"Care a fost importanța Conferinței de Pace de la Paris?", variante:["Recunoașterea granițelor României Mari","Introducerea Codului Civil","Reforma agrară"], corect:0},
+    {intrebare:"Cine a fost Ion Antonescu?", variante:["General și lider politic în perioada 1940–1944","Rege","Explorator"], corect:0},
+    {intrebare:"Ce a fost Marea Unire?", variante:["Unirea tuturor provinciilor istorice românești","Revoluție industrială","Bătălie medievală"], corect:0},
+    {intrebare:"Ce a reprezentat Constituția din 1923?", variante:["Constituția României Mari","Regulament medieval","Cod civil"], corect:0},
+    {intrebare:"Cum a fost organizată administrația după 1918?", variante:["Unită, după model modern","Feudală","Locală și independentă"], corect:0}
+  ],
+
+  // ===================== CLASA A VIII-A =====================
+  "8_usor": [
+    {intrebare:"În ce an a început Primul Război Mondial?", variante:["1914","1918","1939"], corect:0},
+    {intrebare:"Cine a fost Regele Ferdinand I?", variante:["Rege al României Mari","Domnitor al Moldovei","General"], corect:0},
+    {intrebare:"Ce eveniment a dus la Marea Unire?", variante:["Sfârșitul Primului Război Mondial","Războiul de Independență","Revoluția de la 1848"], corect:0},
+    {intrebare:"Ce teritoriu a fost unit cu România în 1918?", variante:["Transilvania","Banatul","Oltenia"], corect:0},
+    {intrebare:"Cine a condus România în Primul Război Mondial?", variante:["Regina Maria","Carol I","Ferdinand I"], corect:2},
+    {intrebare:"Ce a fost Bătălia de la Mărășești?", variante:["Luptă din Primul Război Mondial","Bătălie medievală","Război civil"], corect:0},
+    {intrebare:"Ce a fost Tratatul de la Trianon?", variante:["Tratat care a stabilit granițele României Mari","Cod civil","Constituție medievală"], corect:0},
+    {intrebare:"Cine a fost Nicolae Iorga?", variante:["Istoric și politician","Domnitor","General"], corect:0},
+    {intrebare:"Ce a introdus reforma agrară din 1921?", variante:["Împroprietărirea țăranilor","Cod civil modern","Sistem feudal"], corect:0},
+    {intrebare:"Cine a fost generalul Averescu?", variante:["Militar român în Primul Război Mondial","Rege","Explorator"], corect:0}
+  ],
+  "8_mediu": [
+    {intrebare:"Care au fost cauzele Primului Război Mondial?", variante:["Imperialism și alianțe militare","Crize economice locale","Descoperiri geografice"], corect:0},
+    {intrebare:"Ce teritorii a primit România după 1918?", variante:["Transilvania, Banat, Bucovina, Basarabia","Oltenia și Muntenia","Dobrogea și Moldova"], corect:0},
+    {intrebare:"Ce rol a avut România în Primul Război Mondial?", variante:["Alăturarea de Antanta și participarea militară","Neutralitate completă","Război cu Turcia"], corect:0},
+    {intrebare:"Care a fost importanța Conferinței de Pace de la Paris?", variante:["Recunoașterea granițelor României Mari","Introducerea Codului Civil","Reforma agrară"], corect:0},
+    {intrebare:"Cine a fost Ion Antonescu?", variante:["General și lider politic în perioada 1940–1944","Rege","Explorator"], corect:0},
+    {intrebare:"Ce a fost Marea Unire?", variante:["Unirea tuturor provinciilor istorice românești","Revoluție industrială","Bătălie medievală"], corect:0},
+    {intrebare:"Ce a reprezentat Constituția din 1923?", variante:["Constituția României Mari","Regulament medieval","Cod civil"], corect:0},
+    {intrebare:"Cum a fost organizată administrația după 1918?", variante:["Unită, după model modern","Feudală","Locală și independentă"], corect:0},
+    {intrebare:"Ce teritoriu a fost cedat României de la Austro-Ungaria?", variante:["Transilvania","Moldova","Muntenia"], corect:0},
+    {intrebare:"Ce tratat a pus capăt Primului Război Mondial?", variante:["Tratatul de la Versailles","Tratatul de la Berlin","Tratatul de la Paris"], corect:0}
+  ],
+  "8_greu": [
+    {intrebare:"Care a fost politica externă a României interbelice?", variante:["Alianță cu Franța și Anglia","Neutralitate completă","Relații exclusive cu Germania"], corect:0},
+    {intrebare:"Ce a fost Pactul de la Paris din 1920?", variante:["Recunoașterea granițelor României Mari","Acord economic","Tratat militar"], corect:0},
+    {intrebare:"Cine a fost Carol al II-lea?", variante:["Rege al României","General","Politician comunist"], corect:0},
+    {intrebare:"Ce a fost Dictatura regală din 1938?", variante:["Perioadă de guvernare autoritară a lui Carol II","Revoluție","Război civil"], corect:0},
+    {intrebare:"Care a fost scopul reformei agrare din perioada interbelică?", variante:["Împroprietărirea țăranilor","Centralizarea puterii","Crearea de armate"], corect:0},
+    {intrebare:"Cum s-a schimbat România după Marea Unire?", variante:["Unitate teritorială și administrativă","Fragmentare","Neutralitate"], corect:0},
+    {intrebare:"Ce a fost Consiliul de Miniștri interbelic?", variante:["Guvernul României Mari","Organ feudal","Comitet militar"], corect:0},
+    {intrebare:"Ce tratat a stabilit relațiile României cu Ungaria după 1920?", variante:["Tratatul de la Trianon","Tratatul de la Paris","Tratatul de la Berlin"], corect:0},
+    {intrebare:"Care au fost cauzele crizei politice din 1930–1940?", variante:["Conflicte interne și externe","Revoluții industriale","Expansiuni teritoriale"], corect:0},
+    {intrebare:"Ce a reprezentat perioada interbelică pentru România?", variante:["Consolidarea statului unitar și modernizarea","Feudalism","Colonizare"], corect:0}
+  ]
+};
+
+// ================= LOGICA TESTULUI =====================
+let currentQuestions = [];
+let currentIndex = 0;
+let score = 0;
+let timerInterval;
+let timeLeft = 0;
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function startTest() {
+  const clasa = document.getElementById("clasa").value;
+  const dificultate = document.getElementById("dificultate").value;
+  currentQuestions = teste[`${clasa}_${dificultate}`];
+  if(!currentQuestions || currentQuestions.length === 0){
+    alert("Întrebările pentru această clasă/dificultate nu sunt încă definite!");
+    return;
+  }
+  currentIndex = 0;
+  score = 0;
+  document.getElementById("result").innerHTML = "";
+  showQuestion(dificultate);
+}
+
+function showQuestion(dificultate) {
+  clearInterval(timerInterval);
+  if(currentIndex >= currentQuestions.length) {
+    document.getElementById("test").innerHTML = "";
+    document.getElementById("timer").innerHTML = "";
+    document.getElementById("progress").innerHTML = "";
+
+    // Salveaza scor in localStorage
+    let clasa = document.getElementById("clasa").value;
+    let dific = document.getElementById("dificultate").value;
+    localStorage.setItem(`scor_${clasa}_${dific}`, score);
+
+    // ranking
+    let stars = '';
+    if(score >= 9) stars = '⭐⭐⭐⭐⭐';
+    else if(score >=6) stars = '⭐⭐⭐⭐';
+    else stars = '⭐⭐';
+    document.getElementById("result").innerHTML = 
+      `Ai răspuns corect la ${score} din ${currentQuestions.length} întrebări.<br>` +
+      `Ranking: ${stars}<br>` +
+      `Ultimul scor salvat: ${score}`;
+    return;
+  }
+
+  const q = {...currentQuestions[currentIndex]};
+  let variante = q.variante.map((v,i) => ({text:v, index:i}));
+  shuffleArray(variante);
+
+  let html = `<div class="question-card ${dificultate}"><div class="question">${q.intrebare}</div><div class="answers">`;
+  variante.forEach((v) => {
+    html += `<label><input type="radio" name="answer" value="${v.index}"> ${v.text}</label>`;
+  });
+  html += `</div><button onclick="checkAnswer('${dificultate}')">Confirmă răspunsul</button></div>`;
+  document.getElementById("test").innerHTML = html;
+
+  document.getElementById("progress").innerText = `Întrebarea ${currentIndex+1} din ${currentQuestions.length}`;
+
+  timeLeft = timpPeDificultate[dificultate];
+  document.getElementById("timer").innerText = `Timp rămas: ${timeLeft} sec`;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = `Timp rămas: ${timeLeft} sec`;
+    if(timeLeft <= 0) {
+      clearInterval(timerInterval);
+      alert("Timpul a expirat!");
+      currentIndex++;
+      showQuestion(dificultate);
+    }
+  }, 1000);
+}
+
+function checkAnswer(dificultate) {
+  clearInterval(timerInterval);
+  const radios = document.getElementsByName("answer");
+  let selected = -1;
+  radios.forEach(r => { if(r.checked) selected = parseInt(r.value); });
+
+  const feedbackDiv = document.createElement("div");
+  feedbackDiv.style.marginTop = "10px";
+
+  const soundCorrect = document.getElementById("sound-correct");
+  const soundWrong = document.getElementById("sound-wrong");
+
+  if(selected === currentQuestions[currentIndex].corect) {
+    score++;
+    feedbackDiv.innerText = "Răspuns corect!";
+    feedbackDiv.className = "correct";
+    soundCorrect.currentTime = 0;
+    soundCorrect.play();
+  } else {
+    feedbackDiv.innerText = `Răspuns greșit! Răspuns corect: ${currentQuestions[currentIndex].variante[currentQuestions[currentIndex].corect]}`;
+    feedbackDiv.className = "wrong";
+    soundWrong.currentTime = 0;
+    soundWrong.play();
+  }
+
+  document.getElementById("test").appendChild(feedbackDiv);
+  setTimeout(() => {
+    currentIndex++;
+    showQuestion(dificultate);
+  }, 1500);
+}
+
+// functie pentru reset test fara reload
+function restartTest(){
+  currentIndex = 0;
+  score = 0;
+  document.getElementById("result").innerHTML = "";
+  const dificultate = document.getElementById("dificultate").value;
+  showQuestion(dificultate);
+}
+</script>
+</body>
+</html>
